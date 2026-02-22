@@ -1,0 +1,6 @@
+pandas
+requests
+pendulum
+psycopg2-binary
+python-dotenv
+apache-airflow
