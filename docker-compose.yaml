@@ -1,4 +1,12 @@
 
+x-airflow-env: &airflow-env
+  AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow_postgres:5432/${AIRFLOW_POSTGRES_DB}
+  AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow_postgres:5432/${AIRFLOW_POSTGRES_DB}
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+
 x-airflow-common: &airflow-common
   build: .
   env_file:
@@ -7,16 +15,10 @@ x-airflow-common: &airflow-common
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/plugins:/opt/airflow/plugins
-    - ./dbt:/opt/dbt
     - ./airflow/sql:/opt/airflow/sql
     - ./data:/opt/airflow/data
     - ./utils:/opt/airflow/utils
-  environment:
-    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow_postgres:5432/${AIRFLOW_POSTGRES_DB}
-    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow_postgres:5432/${AIRFLOW_POSTGRES_DB}
-    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    - ./dbt:/opt/dbt
   depends_on:
     - airflow_postgres
     - redis
@@ -26,7 +28,8 @@ services:
   airflow_postgres:
     image: postgres:16
     container_name: metadata-postgres
-    env_file: [.env]
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${AIRFLOW_POSTGRES_USER}
       POSTGRES_PASSWORD: ${AIRFLOW_POSTGRES_PASSWORD}
@@ -37,7 +40,8 @@ services:
   dwh_postgres:
     image: postgres:16
     container_name: dwh-postgres
-    env_file: [.env]
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -45,7 +49,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - dwh_pg_data:/var/lib/postgresql/data    
+      - dwh_pg_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7
@@ -53,10 +57,26 @@ services:
     ports:
       - "6379:6379"
 
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    restart: "no"
+    environment:
+      <<: *airflow-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USERNAME}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+      _AIRFLOW_WWW_USER_FIRSTNAME: ${AIRFLOW_ADMIN_FIRSTNAME}
+      _AIRFLOW_WWW_USER_LASTNAME: ${AIRFLOW_ADMIN_LASTNAME}
+      _AIRFLOW_WWW_USER_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
+
   airflow-apiserver:
     <<: *airflow-common
     container_name: airflow-apiserver
     command: api-server
+    environment:
+      <<: *airflow-env
     ports:
       - "8080:8080"
 
@@ -64,30 +84,22 @@ services:
     <<: *airflow-common
     container_name: airflow-scheduler
     command: scheduler
+    environment:
+      <<: *airflow-env
 
   airflow-worker:
     <<: *airflow-common
     container_name: airflow-worker
     command: celery worker
+    environment:
+      <<: *airflow-env
 
   airflow-triggerer:
     <<: *airflow-common
     container_name: airflow-triggerer
     command: triggerer
-
-  airflow-init:
-    <<: *airflow-common
-    container_name: airflow-init
-    restart: "no"
-    command: >
-      bash -lc "
-        airflow db migrate &&
-        airflow users create
-          --username '${AIRFLOW_ADMIN_USERNAME}'
-          --password '${AIRFLOW_ADMIN_PASSWORD}'
-          --role Admin
-        || true
-      "
+    environment:
+      <<: *airflow-env
 
   dbt:
     image: ghcr.io/dbt-labs/dbt-postgres:1.7.5
