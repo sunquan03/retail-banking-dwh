@@ -1,0 +1,17 @@
+name: retail_banking_dwh
+version: "1.0.0"
+config-version: 2
+
+profile: retail_banking_dwh
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+
+models:
+  retail_banking_dwh:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: mart
+      +materialized: table

@@ -133,13 +133,13 @@ services:
   dbt:
     image: ghcr.io/dbt-labs/dbt-postgres:1.7.5
     container_name: dbt
+    env_file:
+      - .env
     volumes:
       - ./dbt:/usr/app
     working_dir: /usr/app
     depends_on:
       - dwh_postgres
-    extra_hosts:
-    - "host.docker.internal:host-gateway"
 
 volumes:
   airflow_pg_data:
