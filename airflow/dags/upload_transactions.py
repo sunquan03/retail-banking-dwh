@@ -1,6 +1,5 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.provider.postgres.operators.postgres import PostgresOperator
 from airflow.hooks.base import BaseHook
 from datetime import datetime
 from pathlib import Path

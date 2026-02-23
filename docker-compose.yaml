@@ -1,11 +1,15 @@
 
 x-airflow-env: &airflow-env
+  PYTHONPATH: /opt/airflow
   AIRFLOW__CORE__EXECUTOR: CeleryExecutor
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow_postgres:5432/${AIRFLOW_POSTGRES_DB}
   AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
   AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@airflow_postgres:5432/${AIRFLOW_POSTGRES_DB}
   AIRFLOW__CORE__LOAD_EXAMPLES: "false"
   AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+  AIRFLOW__API__BASE_URL: http://host.docker.internal:8080
+  AIRFLOW__WEBSERVER__BASE_URL: http://host.docker.internal:8080
+  AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_API_JWT_SECRET}
 
 x-airflow-common: &airflow-common
   build: .
@@ -16,7 +20,7 @@ x-airflow-common: &airflow-common
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/plugins:/opt/airflow/plugins
     - ./airflow/sql:/opt/airflow/sql
-    - ./data:/opt/airflow/data
+    - ./airflow/data:/opt/airflow/data
     - ./utils:/opt/airflow/utils
     - ./dbt:/opt/dbt
   depends_on:
@@ -36,6 +40,8 @@ services:
       POSTGRES_DB: ${AIRFLOW_POSTGRES_DB}
     volumes:
       - airflow_pg_data:/var/lib/postgresql/data
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   dwh_postgres:
     image: postgres:16
@@ -50,12 +56,16 @@ services:
       - "5433:5432"
     volumes:
       - dwh_pg_data:/var/lib/postgresql/data
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   redis:
     image: redis:7
     container_name: airflow-redis
     ports:
       - "6379:6379"
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   airflow-init:
     <<: *airflow-common
@@ -70,6 +80,8 @@ services:
       _AIRFLOW_WWW_USER_FIRSTNAME: ${AIRFLOW_ADMIN_FIRSTNAME}
       _AIRFLOW_WWW_USER_LASTNAME: ${AIRFLOW_ADMIN_LASTNAME}
       _AIRFLOW_WWW_USER_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   airflow-apiserver:
     <<: *airflow-common
@@ -79,6 +91,8 @@ services:
       <<: *airflow-env
     ports:
       - "8080:8080"
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   airflow-scheduler:
     <<: *airflow-common
@@ -86,6 +100,8 @@ services:
     command: scheduler
     environment:
       <<: *airflow-env
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   airflow-worker:
     <<: *airflow-common
@@ -93,6 +109,8 @@ services:
     command: celery worker
     environment:
       <<: *airflow-env
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   airflow-triggerer:
     <<: *airflow-common
@@ -100,6 +118,17 @@ services:
     command: triggerer
     environment:
       <<: *airflow-env
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    container_name: airflow-dag-processor
+    command: dag-processor
+    environment:
+      <<: *airflow-env
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   dbt:
     image: ghcr.io/dbt-labs/dbt-postgres:1.7.5
@@ -109,6 +138,8 @@ services:
     working_dir: /usr/app
     depends_on:
       - dwh_postgres
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
 volumes:
   airflow_pg_data:
