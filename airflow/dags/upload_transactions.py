@@ -4,7 +4,7 @@ from airflow.hooks.base import BaseHook
 from datetime import datetime
 from pathlib import Path
 import pendulum
-from utils.loader import init_ddl, load_csv_postgres
+from utils.loader import run_ddl, load_csv_postgres
 
 
 def get_dwh_db_conn_params():
@@ -21,12 +21,12 @@ def get_dwh_db_conn_params():
 
 def init_schemas():
     conn_params = get_dwh_db_conn_params()
-    init_ddl(filepath="/opt/airflow/sql/init_schemas.sql", conn_params=conn_params)
+    run_ddl(filepath="/opt/airflow/sql/init_schemas.sql", conn_params=conn_params)
 
 
 def init_raw_table():
     conn_params = get_dwh_db_conn_params()
-    init_ddl(filepath="/opt/airflow/sql/transactions_ddl.sql", conn_params=conn_params)
+    run_ddl(filepath="/opt/airflow/sql/transactions_ddl.sql", conn_params=conn_params)
 
 
 def load_raw_transactions():

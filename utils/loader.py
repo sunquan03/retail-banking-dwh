@@ -2,7 +2,12 @@ import psycopg2
 import pandas as pd
 from io import StringIO
 
-def init_ddl(filepath:str, conn_params:dict):
+
+def read_sql_file(filepath:str):
+    with open(filepath, 'r', encoding="utf-8") as f:
+        return f.read()
+
+def run_ddl(filepath:str, conn_params:dict):
     with open(filepath, "r", encoding="utf-8") as f:
         sql = f.read()
         conn = psycopg2.connect(**conn_params)

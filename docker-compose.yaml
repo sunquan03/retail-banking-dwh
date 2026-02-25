@@ -23,6 +23,7 @@ x-airflow-common: &airflow-common
     - ./airflow/data:/opt/airflow/data
     - ./utils:/opt/airflow/utils
     - ./dbt:/opt/dbt
+    - /var/run/docker.sock:/var/run/docker.sock
   depends_on:
     - airflow_postgres
     - redis
@@ -133,6 +134,7 @@ services:
   dbt:
     image: ghcr.io/dbt-labs/dbt-postgres:1.7.5
     container_name: dbt
+    user: "${DBT_UID:-1000}:${DBT_GID:-1000}"
     env_file:
       - .env
     volumes:
@@ -140,6 +142,9 @@ services:
     working_dir: /usr/app
     depends_on:
       - dwh_postgres
+    environment:
+      DBT_PROFILES_DIR: /usr/app
+    command: ["dbt", "run"]
 
 volumes:
   airflow_pg_data:

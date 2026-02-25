@@ -1,17 +1,17 @@
 from pathlib import Path
-from utils.loader import init_ddl, load_csv_postgres
+from utils.loader import run_ddl, load_csv_postgres
 
 
-def test_init_ddl(conn_params):
+def test_run_ddl(conn_params):
     schemas_file = Path("airflow/sql/init_schemas.sql")
     assert schemas_file.exists(), f"Missing file {schemas_file}"
 
-    init_ddl(schemas_file, conn_params)
+    run_ddl(schemas_file, conn_params)
 
     ddl_file = Path("airflow/sql/transactions_ddl.sql")
     assert ddl_file.exists(), f"Missing file {ddl_file}"
 
-    init_ddl(ddl_file, conn_params)
+    run_ddl(ddl_file, conn_params)
 
     import psycopg2
 
