@@ -1,7 +1,7 @@
 # Banking Fraud Transactions Data Warehouse
 
 Stack: **PostgreSQL +
-dbt + Python**.  
+dbt + Python + Airflow**.  
 
 ------------------------------------------------------------------------
 
