@@ -107,7 +107,6 @@ Formal hypothesis testing validated balance features.
 
 - Mann–Whitney U test (non-parametric)
 - Welch’s t-test (unequal variance)
-- Benjamini–Hochberg correction (multiple testing)
 
 
 Sender balance features — particularly balance deltas — are strong
